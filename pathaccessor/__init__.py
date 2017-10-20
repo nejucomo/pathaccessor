@@ -13,16 +13,11 @@ class PathAccessorBase (object):
 
     # A private utility method for subclasses:
     def _get(self, key, exctype, pathfmt):
+        v = self._value
         try:
-            thing = self._d[key]
+            thing = v[key]
         except (KeyError, IndexError, AttributeError):
-            raise exctype(
-                '{!r} has no {} {!r}'.format(
-                    self,
-                    exctype.__name__[:-5],
-                    key,
-                ),
-            )
+            raise exctype('{!r} has no member {!r}'.format(self, key))
 
         return wrap(
             thing,
@@ -31,13 +26,18 @@ class PathAccessorBase (object):
         )
 
 
+class PathAccessorKeyError (KeyError):
+    def __str__(self):
+        return self.args[0]
+
+
 class MappingPathAccessor (PathAccessorBase, Mapping):
     def __init__(self, d, path):
         assert isinstance(d, Mapping), (d, path)
         PathAccessorBase.__init__(self, d, path)
 
     def __getitem__(self, key):
-        return self._get(key, KeyError, '{}[{!r}]')
+        return self._get(key, PathAccessorKeyError, '{}[{!r}]')
 
     def __iter__(self):
         return iter(self._d)
@@ -58,7 +58,15 @@ class SequencePathAccessor (PathAccessorBase, Sequence):
         self._mappingaccessor = mappingaccessor
 
     def __getitem__(self, key):
-        return self._get(key, IndexError, '{}[{!r}]')
+        if isinstance(key, int):
+            return self._get(key, IndexError, '{}[{!r}]')
+        else:
+            raise TypeError(
+                'Index {!r} of {!r} not an integer'.format(
+                    key,
+                    self,
+                ),
+            )
 
     def __len__(self):
         return len(self._d)

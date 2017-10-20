@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 
-PACKAGE = 'accessorpath'
+PACKAGE = 'pathaccessor'
 
 setup(
     name=PACKAGE,
