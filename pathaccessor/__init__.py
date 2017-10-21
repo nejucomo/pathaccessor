@@ -40,13 +40,13 @@ class MappingPathAccessor (PathAccessorBase, Mapping):
         return self._get(key, PathAccessorKeyError, '{}[{!r}]')
 
     def __iter__(self):
-        return iter(self._d)
+        return iter(self._value)
 
     def __len__(self):
-        return len(self._d)
+        return len(self._value)
 
 
-class MappedAttrPathAccessor (MappingPathAccessor):
+class MappedAttrsPathAccessor (MappingPathAccessor):
     def __getattr__(self, key):
         return self._get(key, AttributeError, '{}.{}')
 

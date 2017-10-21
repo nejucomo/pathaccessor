@@ -1,6 +1,6 @@
 import unittest
 import re
-from pathaccessor import MappingPathAccessor
+from pathaccessor import MappingPathAccessor, MappedAttrsPathAccessor
 
 
 class PathAccessorBaseTests (unittest.TestCase):
@@ -24,15 +24,40 @@ class MappingPathAccessorTests (PathAccessorBaseTests):
             42,
         )
 
+    def test_keys(self):
+        mpa = MappingPathAccessor(
+            {
+                'weapon': 'sword',
+                'armor': 'leather'
+            },
+            'ROOT',
+        )
+        self.assertEqual({'weapon', 'armor'}, set(mpa.keys()))
+
 
 class CompoundStructureTests (PathAccessorBaseTests):
-    def test_member_error(self):
-        mpa = MappingPathAccessor({'a': [{"foo": [None, []]}]}, 'ROOT')
+    def setUp(self):
+        self.structure = {'a': [{"foo": [None, []]}]}
+
+    def test_mapping(self):
+        mpa = MappingPathAccessor(self.structure, 'ROOT')
         child = mpa['a'][0]['foo'][1]
         self.assertRaisesLiteral(
             TypeError,
             ("Index 'bananas' of "
              + "<SequencePathAccessor ROOT['a'][0]['foo'][1] []>"
+             + " not an integer"),
+            child.__getitem__,
+            'bananas',
+        )
+
+    def test_mappedattrs(self):
+        mpa = MappedAttrsPathAccessor(self.structure, 'ROOT')
+        child = mpa['a'][0].foo[1]
+        self.assertRaisesLiteral(
+            TypeError,
+            ("Index 'bananas' of "
+             + "<SequencePathAccessor ROOT['a'][0].foo[1] []>"
              + " not an integer"),
             child.__getitem__,
             'bananas',
