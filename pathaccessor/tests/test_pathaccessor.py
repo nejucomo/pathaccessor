@@ -1,5 +1,6 @@
 import unittest
 import re
+from types import MethodType
 from pathaccessor import MappingPathAccessor, MappedAttrsPathAccessor
 
 
@@ -52,8 +53,15 @@ class MappedAttrsPathAccessorTests (MappingPathAccessorTests):
         self.assertEqual('bar', self.mapa.foo)
         self.assertEqual('bar', self.mapa['foo'])
 
-    def test_attribute_access(self):
-        self.assertEqual('bar', self.mapa.foo)
+    def test_tricky_attribute_access(self):
+        # Because .get is a method, we cannot access the data this way:
+        thing = self.mapa.get
+        self.assertIsInstance(thing, MethodType)
+
+        # Such data can only be accessed through __getitem__:
+        got = self.mapa['get']
+        self.assertNotEqual(thing, got)
+        self.assertEqual('got', got)
 
 
 class CompoundStructureTests (PathAccessorBaseTests):
