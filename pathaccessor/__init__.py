@@ -73,7 +73,10 @@ class SequencePathAccessor (PathAccessorBase, Sequence):
 
 
 def wrap(thing, path, mappingaccessor=MappingPathAccessor):
-    if isinstance(thing, Mapping):
+    if isinstance(thing, basestring):
+        # This case avoids the Sequence case below:
+        return thing
+    elif isinstance(thing, Mapping):
         return mappingaccessor(thing, path)
     elif isinstance(thing, Sequence):
         return SequencePathAccessor(thing, path, mappingaccessor)

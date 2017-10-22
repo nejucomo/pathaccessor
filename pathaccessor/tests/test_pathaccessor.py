@@ -42,6 +42,19 @@ class MappingPathAccessorTests (PathAccessorBaseTests):
 class MappedAttrsPathAccessorTests (MappingPathAccessorTests):
     targetClass = MappedAttrsPathAccessor
 
+    def setUp(self):
+        self.mapa = MappedAttrsPathAccessor(
+            {'foo': 'bar', 'get': 'got'},
+            'THINGY',
+        )
+
+    def test_attribute_access_versus_getitem(self):
+        self.assertEqual('bar', self.mapa.foo)
+        self.assertEqual('bar', self.mapa['foo'])
+
+    def test_attribute_access(self):
+        self.assertEqual('bar', self.mapa.foo)
+
 
 class CompoundStructureTests (PathAccessorBaseTests):
     def setUp(self):
