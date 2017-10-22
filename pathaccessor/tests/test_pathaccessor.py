@@ -15,17 +15,21 @@ class PathAccessorBaseTests (unittest.TestCase):
 
 
 class MappingPathAccessorTests (PathAccessorBaseTests):
+    targetClass = MappingPathAccessor
+
     def test_keyerror(self):
-        mpa = MappingPathAccessor({}, 'ROOT')
+        mpa = self.targetClass({}, 'ROOT')
         self.assertRaisesLiteral(
             KeyError,
-            '<MappingPathAccessor ROOT {}> has no member 42',
+            '<{} ROOT {{}}> has no member 42'.format(
+                self.targetClass.__name__,
+            ),
             mpa.__getitem__,
             42,
         )
 
     def test_keys(self):
-        mpa = MappingPathAccessor(
+        mpa = self.targetClass(
             {
                 'weapon': 'sword',
                 'armor': 'leather'
@@ -33,6 +37,10 @@ class MappingPathAccessorTests (PathAccessorBaseTests):
             'ROOT',
         )
         self.assertEqual({'weapon', 'armor'}, set(mpa.keys()))
+
+
+class MappedAttrsPathAccessorTests (MappingPathAccessorTests):
+    targetClass = MappedAttrsPathAccessor
 
 
 class CompoundStructureTests (PathAccessorBaseTests):
