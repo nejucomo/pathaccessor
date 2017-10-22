@@ -1,6 +1,11 @@
 from collections import Mapping, Sequence
 
 
+class PathAccessorKeyError (KeyError):
+    def __str__(self):
+        return self.args[0]
+
+
 class PathAccessorBase (object):
     def __init__(self, value, path):
         assert isinstance(path, str), (value, path)
@@ -10,6 +15,10 @@ class PathAccessorBase (object):
 
     def __repr__(self):
         return '<{0.__name__} {1._path} {1._value!r}>'.format(type(self), self)
+
+    def __getitem__(self, key):
+        t = type(self)
+        return self._get(key, t._GetItemExc, '{}[{!r}]')
 
     # A private utility method for subclasses:
     def _get(self, key, exctype, pathfmt):
@@ -26,18 +35,15 @@ class PathAccessorBase (object):
         )
 
 
-class PathAccessorKeyError (KeyError):
-    def __str__(self):
-        return self.args[0]
-
-
 class MappingPathAccessor (PathAccessorBase, Mapping):
+    @classmethod
+    def fromMappedAttrs(cls, inst):
+        assert isinstance(inst, MappedAttrsPathAccessor), inst
+        return cls(inst._value, inst._path)
+
     def __init__(self, d, path):
         assert isinstance(d, Mapping), (d, path)
         PathAccessorBase.__init__(self, d, path)
-
-    def __getitem__(self, key):
-        return self._get(key, PathAccessorKeyError, '{}[{!r}]')
 
     def __iter__(self):
         return iter(self._value)
@@ -45,10 +51,16 @@ class MappingPathAccessor (PathAccessorBase, Mapping):
     def __len__(self):
         return len(self._value)
 
+    # Private:
+    _GetItemExc = PathAccessorKeyError
 
-class MappedAttrsPathAccessor (MappingPathAccessor):
+
+class MappedAttrsPathAccessor (PathAccessorBase):
     def __getattr__(self, key):
         return self._get(key, AttributeError, '{}.{}')
+
+    # Private:
+    _GetItemExc = PathAccessorKeyError
 
 
 class SequencePathAccessor (PathAccessorBase, Sequence):
@@ -70,6 +82,9 @@ class SequencePathAccessor (PathAccessorBase, Sequence):
 
     def __len__(self):
         return len(self._d)
+
+    # Private:
+    _GetItemExc = PathAccessorKeyError
 
 
 def wrap(thing, path, mappingaccessor=MappingPathAccessor):

@@ -1,6 +1,5 @@
 import unittest
 import re
-from types import MethodType
 from pathaccessor import MappingPathAccessor, MappedAttrsPathAccessor
 
 
@@ -16,21 +15,17 @@ class PathAccessorBaseTests (unittest.TestCase):
 
 
 class MappingPathAccessorTests (PathAccessorBaseTests):
-    targetClass = MappingPathAccessor
-
     def test_keyerror(self):
-        mpa = self.targetClass({}, 'ROOT')
+        mpa = MappingPathAccessor({}, 'ROOT')
         self.assertRaisesLiteral(
             KeyError,
-            '<{} ROOT {{}}> has no member 42'.format(
-                self.targetClass.__name__,
-            ),
+            '<MappingPathAccessor ROOT {}> has no member 42',
             mpa.__getitem__,
             42,
         )
 
     def test_keys(self):
-        mpa = self.targetClass(
+        mpa = MappingPathAccessor(
             {
                 'weapon': 'sword',
                 'armor': 'leather'
@@ -40,9 +35,7 @@ class MappingPathAccessorTests (PathAccessorBaseTests):
         self.assertEqual({'weapon', 'armor'}, set(mpa.keys()))
 
 
-class MappedAttrsPathAccessorTests (MappingPathAccessorTests):
-    targetClass = MappedAttrsPathAccessor
-
+class MappedAttrsPathAccessorTests (PathAccessorBaseTests):
     def setUp(self):
         self.mapa = MappedAttrsPathAccessor(
             {'foo': 'bar', 'get': 'got'},
@@ -54,14 +47,16 @@ class MappedAttrsPathAccessorTests (MappingPathAccessorTests):
         self.assertEqual('bar', self.mapa['foo'])
 
     def test_tricky_attribute_access(self):
-        # Because .get is a method, we cannot access the data this way:
-        thing = self.mapa.get
-        self.assertIsInstance(thing, MethodType)
+        thing1 = self.mapa.get
+        thing2 = self.mapa['get']
+        self.assertEqual('got', thing1)
+        self.assertEqual(thing1, thing2)
 
-        # Such data can only be accessed through __getitem__:
-        got = self.mapa['get']
-        self.assertNotEqual(thing, got)
-        self.assertEqual('got', got)
+        # If you need a Mapping interface use this API:
+        mpa = MappingPathAccessor.fromMappedAttrs(self.mapa)
+        self.assertEqual('bar', mpa.get('foo'))
+        self.assertEqual('got', mpa.get('get'))
+        self.assertEqual('banana', mpa.get('fruit', 'banana'))
 
 
 class CompoundStructureTests (PathAccessorBaseTests):
@@ -81,8 +76,8 @@ class CompoundStructureTests (PathAccessorBaseTests):
         )
 
     def test_mappedattrs(self):
-        mpa = MappedAttrsPathAccessor(self.structure, 'ROOT')
-        child = mpa['a'][0].foo[1]
+        mapa = MappedAttrsPathAccessor(self.structure, 'ROOT')
+        child = mapa['a'][0].foo[1]
         self.assertRaisesLiteral(
             TypeError,
             ("Index 'bananas' of "
