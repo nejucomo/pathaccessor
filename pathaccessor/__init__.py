@@ -16,6 +16,9 @@ class PathAccessorBase (object):
     def __repr__(self):
         return '<{0.__name__} {1._path} {1._value!r}>'.format(type(self), self)
 
+    def __len__(self):
+        return len(self._value)
+
     def __getitem__(self, key):
         t = type(self)
         return self._get(key, t._GetItemExc, '{}[{!r}]')
@@ -48,9 +51,6 @@ class MappingPathAccessor (PathAccessorBase, Mapping):
     def __iter__(self):
         return iter(self._value)
 
-    def __len__(self):
-        return len(self._value)
-
     # Private:
     _GetItemExc = PathAccessorKeyError
 
@@ -79,9 +79,6 @@ class SequencePathAccessor (PathAccessorBase, Sequence):
                     self,
                 ),
             )
-
-    def __len__(self):
-        return len(self._d)
 
     # Private:
     _GetItemExc = PathAccessorKeyError

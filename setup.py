@@ -8,7 +8,7 @@ PACKAGE = 'pathaccessor'
 setup(
     name=PACKAGE,
     description='Track the key path into a dicts-and-lists data structure.',
-    version='0.1.0',
+    version='0.1.1',
     author='Nathan Wilcox',
     author_email='nejucomo+dev@gmail.com',
     license='GPLv3',

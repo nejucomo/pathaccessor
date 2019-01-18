@@ -1,14 +1,16 @@
 import unittest
 import re
 from pathaccessor import (
-    PathAccessorBase,
     MappingPathAccessor,
     MappedAttrsPathAccessor,
+    PathAccessorBase,
+    SequencePathAccessor,
 )
 
 
 class PathAccessorBaseTests (unittest.TestCase):
     TargetClass = PathAccessorBase
+    TargetValue = {'a': 'aardvark'}
 
     def assertRaisesLiteral(self, exc, msg, f, *args, **kw):
         self.assertRaisesRegexp(
@@ -19,10 +21,15 @@ class PathAccessorBaseTests (unittest.TestCase):
             **kw
         )
 
+    def test_len(self):
+        pab = self.TargetClass(self.TargetValue, 'ROOT')
+        self.assertEqual(len(self.TargetValue), len(pab))
+
     def test_repr(self):
-        pab = self.TargetClass({'a': 'aardvark'}, 'ROOT')
-        expected = "<{} ROOT {{'a': 'aardvark'}}>".format(
+        pab = self.TargetClass(self.TargetValue, 'ROOT')
+        expected = "<{} ROOT {}>".format(
             self.TargetClass.__name__,
+            repr(self.TargetValue),
         )
         actual = repr(pab)
         self.assertEqual(expected, actual)
@@ -104,3 +111,8 @@ class CompoundStructureTests (PathAccessorBaseTests):
             child.__getitem__,
             'bananas',
         )
+
+
+class SequencePathAccessorTests (PathAccessorBaseTests):
+    TargetClass = SequencePathAccessor
+    TargetValue = ['a', 'b', 'c']
