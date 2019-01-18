@@ -1,9 +1,15 @@
 import unittest
 import re
-from pathaccessor import MappingPathAccessor, MappedAttrsPathAccessor
+from pathaccessor import (
+    PathAccessorBase,
+    MappingPathAccessor,
+    MappedAttrsPathAccessor,
+)
 
 
 class PathAccessorBaseTests (unittest.TestCase):
+    TargetClass = PathAccessorBase
+
     def assertRaisesLiteral(self, exc, msg, f, *args, **kw):
         self.assertRaisesRegexp(
             exc,
@@ -13,8 +19,18 @@ class PathAccessorBaseTests (unittest.TestCase):
             **kw
         )
 
+    def test_repr(self):
+        pab = self.TargetClass({'a': 'aardvark'}, 'ROOT')
+        expected = "<{} ROOT {{'a': 'aardvark'}}>".format(
+            self.TargetClass.__name__,
+        )
+        actual = repr(pab)
+        self.assertEqual(expected, actual)
+
 
 class MappingPathAccessorTests (PathAccessorBaseTests):
+    TargetClass = MappingPathAccessor
+
     def test_keyerror(self):
         mpa = MappingPathAccessor({}, 'ROOT')
         self.assertRaisesLiteral(
@@ -36,6 +52,8 @@ class MappingPathAccessorTests (PathAccessorBaseTests):
 
 
 class MappedAttrsPathAccessorTests (PathAccessorBaseTests):
+    TargetClass = MappedAttrsPathAccessor
+
     def setUp(self):
         self.mapa = MappedAttrsPathAccessor(
             {'foo': 'bar', 'get': 'got'},
