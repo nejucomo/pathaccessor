@@ -35,51 +35,50 @@ class PathAccessorBaseTests (unittest.TestCase):
         self.assertEqual(expected, actual)
 
 
-class MappingPathAccessorTests (PathAccessorBaseTests):
-    TargetClass = MappingPathAccessor
-
-    def test_keyerror(self):
-        mpa = MappingPathAccessor({}, 'ROOT')
-        self.assertRaisesLiteral(
-            KeyError,
-            '<MappingPathAccessor ROOT {}> has no member 42',
-            mpa.__getitem__,
-            42,
-        )
-
-    def test_keys(self):
-        mpa = MappingPathAccessor(
+class MPABaseMixin (object):
+    def setUp(self):
+        self.pa = self.TargetClass(
             {
                 'weapon': 'sword',
-                'armor': 'leather'
+                'armor': 'leather',
+                'get': 'got',  # Important case for MappedAttrs
             },
             'ROOT',
         )
-        self.assertEqual({'weapon', 'armor'}, set(mpa.keys()))
 
-
-class MappedAttrsPathAccessorTests (PathAccessorBaseTests):
-    TargetClass = MappedAttrsPathAccessor
-
-    def setUp(self):
-        self.mapa = MappedAttrsPathAccessor(
-            {'foo': 'bar', 'get': 'got'},
-            'THINGY',
+    def test_keyerror(self):
+        self.assertRaisesRegexp(
+            KeyError,
+            r"^<[A-Za-z]+PathAccessor ROOT {.*}> has no member 42$",
+            self.pa.__getitem__,
+            42,
         )
 
+
+class MappingPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
+    TargetClass = MappingPathAccessor
+
+    def test_keys(self):
+        self.assertEqual({'weapon', 'armor'}, set(self.pa.keys()))
+
+
+class MappedAttrsPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
+    TargetClass = MappedAttrsPathAccessor
+
     def test_attribute_access_versus_getitem(self):
-        self.assertEqual('bar', self.mapa.foo)
-        self.assertEqual('bar', self.mapa['foo'])
+        self.assertEqual('leather', self.pa.armor)
+        self.assertEqual('leather', self.pa['armor'])
 
     def test_tricky_attribute_access(self):
-        thing1 = self.mapa.get
-        thing2 = self.mapa['get']
+        thing1 = self.pa.get
+        thing2 = self.pa['get']
         self.assertEqual('got', thing1)
         self.assertEqual(thing1, thing2)
 
+    def test_mapa_to_mapping_interface(self):
         # If you need a Mapping interface use this API:
-        mpa = MappingPathAccessor.fromMappedAttrs(self.mapa)
-        self.assertEqual('bar', mpa.get('foo'))
+        mpa = MappingPathAccessor.fromMappedAttrs(self.pa)
+        self.assertEqual('leather', mpa.get('armor'))
         self.assertEqual('got', mpa.get('get'))
         self.assertEqual('banana', mpa.get('fruit', 'banana'))
 
