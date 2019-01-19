@@ -1,6 +1,6 @@
 import unittest
 import re
-from pathaccessor import (
+from pathaccessor.impl import (
     MappingPathAccessor,
     MappedAttrsPathAccessor,
     PathAccessorBase,
