@@ -86,9 +86,19 @@ class MappedAttrsPathAccessorTests (PathAccessorBaseTests):
 
 class CompoundStructureTests (PathAccessorBaseTests):
     def setUp(self):
-        self.structure = {'a': [{"foo": [None, []]}]}
+        self.structure = {'a': [{"foo": [None, [], 1337]}]}
 
-    def test_mapping(self):
+    def test_mapping_access_success(self):
+        mpa = MappingPathAccessor(self.structure, 'ROOT')
+        elem = mpa['a'][0]['foo'][2]
+        self.assertEqual(1337, elem)
+
+    def test_mappedattrs_access_success(self):
+        mpa = MappedAttrsPathAccessor(self.structure, 'ROOT')
+        elem = mpa.a[0].foo[2]
+        self.assertEqual(1337, elem)
+
+    def test_mapping_access_error(self):
         mpa = MappingPathAccessor(self.structure, 'ROOT')
         child = mpa['a'][0]['foo'][1]
         self.assertRaisesLiteral(
@@ -100,7 +110,7 @@ class CompoundStructureTests (PathAccessorBaseTests):
             'bananas',
         )
 
-    def test_mappedattrs(self):
+    def test_mappedattrs_access_error(self):
         mapa = MappedAttrsPathAccessor(self.structure, 'ROOT')
         child = mapa['a'][0].foo[1]
         self.assertRaisesLiteral(
