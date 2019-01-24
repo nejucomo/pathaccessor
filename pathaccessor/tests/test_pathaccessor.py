@@ -46,7 +46,10 @@ class MPABaseMixin (object):
             'ROOT',
         )
 
-    def test_keyerror(self):
+    def test_getitem(self):
+        self.assertEqual('sword', self.pa['weapon'])
+
+    def test_getitem_keyerror(self):
         self.assertRaisesRegexp(
             KeyError,
             r"^<[A-Za-z]+PathAccessor ROOT {.*}> has no member 42$",
@@ -60,6 +63,11 @@ class MappingPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
 
     def test_keys(self):
         self.assertEqual({'weapon', 'armor', 'get'}, set(self.pa.keys()))
+
+    def test_get(self):
+        self.assertEqual('sword', self.pa.get('weapon'))
+        self.assertEqual(None, self.pa.get('hat'))
+        self.assertEqual('gru', self.pa.get('sidekick', 'gru'))
 
 
 class MappedAttrsPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
