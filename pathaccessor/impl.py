@@ -57,9 +57,6 @@ class MappingPathAccessor (PathAccessorBase, MutableMapping):
     def __iter__(self):
         return iter(self._value)
 
-    def update(self, other):
-        self._value.update(other)
-
 
 class MappedAttrsPathAccessor (PathAccessorBase):
     def __getattr__(self, key):

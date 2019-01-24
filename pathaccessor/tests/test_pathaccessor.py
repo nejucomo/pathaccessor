@@ -26,7 +26,10 @@ class BaseMixin (object):
         self.target = self.TargetClass(self.value, 'ROOT')
 
     def test_del(self):
-        self.assertEqual(len(self.value), len(self.target))
+        startlen = len(self.target)
+        del self.target[self.Key]
+        endlen = len(self.target)
+        self.assertEqual(startlen - 1, endlen)
 
     def test_len(self):
         self.assertEqual(len(self.value), len(self.target))
@@ -110,6 +113,10 @@ class SequencePathAccessorTests (BaseMixin, TestCase):
 
     def getValue(self):
         return ['a', 'b', 'c']
+
+    def test_insert(self):
+        self.target.insert(2, 'X')
+        self.assertEqual(['a', 'b', 'X', 'c'], self.value)
 
 
 class CompoundStructureTests (TestCase):
