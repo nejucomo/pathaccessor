@@ -1,4 +1,4 @@
-import unittest
+from unittest import TestCase
 import re
 from pathaccessor.impl import (
     MappingPathAccessor,
@@ -8,10 +8,111 @@ from pathaccessor.impl import (
 )
 
 
-class PathAccessorBaseTests (unittest.TestCase):
+class BaseMixin (object):
     TargetClass = PathAccessorBase
-    TargetValue = {'a': 'aardvark'}
+    Key = 'weapon'
+    Elem = 'sword'
+    GetItemError = KeyError
 
+    def getValue(self):
+        return {
+            'weapon': 'sword',
+            'armor': 'leather',
+            'get': 'got',  # Important case for MappedAttrs
+        }
+
+    def setUp(self):
+        self.value = self.getValue()
+        self.target = self.TargetClass(self.value, 'ROOT')
+
+    def test_del(self):
+        self.assertEqual(len(self.value), len(self.target))
+
+    def test_len(self):
+        self.assertEqual(len(self.value), len(self.target))
+
+    def test_repr(self):
+        expected = "<{} ROOT {}>".format(
+            self.TargetClass.__name__,
+            repr(self.value),
+        )
+        actual = repr(self.target)
+        self.assertEqual(expected, actual)
+
+    def test_getitem(self):
+        self.assertEqual(self.Elem, self.target[self.Key])
+
+    def test_setitem(self):
+        self.target[self.Key] = 'polyester'
+        self.assertEqual('polyester', self.target[self.Key])
+
+    def test_getitem_missing(self):
+        self.assertRaisesRegexp(
+            self.GetItemError,
+            r"^<[A-Za-z]+PathAccessor ROOT [^>]+> has no member 42$",
+            self.target.__getitem__,
+            42,
+        )
+
+
+class MappingPathAccessorTests (BaseMixin, TestCase):
+    TargetClass = MappingPathAccessor
+
+    def test_keys(self):
+        self.assertEqual({'weapon', 'armor', 'get'}, set(self.target.keys()))
+
+    def test_get(self):
+        self.assertEqual('sword', self.target.get('weapon'))
+        self.assertEqual(None, self.target.get('hat'))
+        self.assertEqual('gru', self.target.get('sidekick', 'gru'))
+
+    def test_update(self):
+        self.target.update({'hat': 'wizard', 'belt': 'cowboy'})
+        expectedkeys = {'weapon', 'armor', 'get', 'hat', 'belt'}
+        self.assertEqual(expectedkeys, set(self.target.keys()))
+
+
+class MappedAttrsPathAccessorTests (BaseMixin, TestCase):
+    TargetClass = MappedAttrsPathAccessor
+
+    def test_attribute_access_versus_getitem(self):
+        self.assertEqual('leather', self.target.armor)
+        self.assertEqual('leather', self.target['armor'])
+
+    def test_tricky_attribute_access(self):
+        thing1 = self.target.get
+        thing2 = self.target['get']
+        self.assertEqual('got', thing1)
+        self.assertEqual(thing1, thing2)
+
+    def test_setattr_versus_setitem(self):
+        self.target.hat = 'wizard'
+        self.assertEqual('wizard', self.target.hat)
+        self.assertEqual('wizard', self.target['hat'])
+
+        self.target['hat'] = 'tophat'
+        self.assertEqual('tophat', self.target.hat)
+        self.assertEqual('tophat', self.target['hat'])
+
+    def test_mapa_to_mapping_interface(self):
+        # If you need a Mapping interface use this API:
+        mpa = MappingPathAccessor.fromMappedAttrs(self.target)
+        self.assertEqual('leather', mpa.get('armor'))
+        self.assertEqual('got', mpa.get('get'))
+        self.assertEqual('banana', mpa.get('fruit', 'banana'))
+
+
+class SequencePathAccessorTests (BaseMixin, TestCase):
+    TargetClass = SequencePathAccessor
+    Key = 1
+    Elem = 'b'
+    GetItemError = IndexError
+
+    def getValue(self):
+        return ['a', 'b', 'c']
+
+
+class CompoundStructureTests (TestCase):
     def assertRaisesLiteral(self, exc, msg, f, *args, **kw):
         self.assertRaisesRegexp(
             exc,
@@ -21,115 +122,6 @@ class PathAccessorBaseTests (unittest.TestCase):
             **kw
         )
 
-    def test_len(self):
-        pab = self.TargetClass(self.TargetValue, 'ROOT')
-        self.assertEqual(len(self.TargetValue), len(pab))
-
-    def test_repr(self):
-        pab = self.TargetClass(self.TargetValue, 'ROOT')
-        expected = "<{} ROOT {}>".format(
-            self.TargetClass.__name__,
-            repr(self.TargetValue),
-        )
-        actual = repr(pab)
-        self.assertEqual(expected, actual)
-
-
-class MPABaseMixin (object):
-    def setUp(self):
-        self.pa = self.TargetClass(
-            {
-                'weapon': 'sword',
-                'armor': 'leather',
-                'get': 'got',  # Important case for MappedAttrs
-            },
-            'ROOT',
-        )
-
-    def test_getitem(self):
-        self.assertEqual('sword', self.pa['weapon'])
-
-    def test_getitem_keyerror(self):
-        self.assertRaisesRegexp(
-            KeyError,
-            r"^<[A-Za-z]+PathAccessor ROOT {.*}> has no member 42$",
-            self.pa.__getitem__,
-            42,
-        )
-
-    def test_setitem(self):
-        self.pa['pants'] = 'polyester'
-        self.assertEqual('polyester', self.pa['pants'])
-
-
-class MappingPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
-    TargetClass = MappingPathAccessor
-
-    def test_keys(self):
-        self.assertEqual({'weapon', 'armor', 'get'}, set(self.pa.keys()))
-
-    def test_get(self):
-        self.assertEqual('sword', self.pa.get('weapon'))
-        self.assertEqual(None, self.pa.get('hat'))
-        self.assertEqual('gru', self.pa.get('sidekick', 'gru'))
-
-    def test_update(self):
-        self.pa.update({'hat': 'wizard', 'belt': 'cowboy'})
-        expectedkeys = {'weapon', 'armor', 'get', 'hat', 'belt'}
-        self.assertEqual(expectedkeys, self.pa.keys())
-
-
-class MappedAttrsPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
-    TargetClass = MappedAttrsPathAccessor
-
-    def test_attribute_access_versus_getitem(self):
-        self.assertEqual('leather', self.pa.armor)
-        self.assertEqual('leather', self.pa['armor'])
-
-    def test_tricky_attribute_access(self):
-        thing1 = self.pa.get
-        thing2 = self.pa['get']
-        self.assertEqual('got', thing1)
-        self.assertEqual(thing1, thing2)
-
-    def test_setattr_versus_setitem(self):
-        self.pa.hat = 'wizard'
-        self.assertEqual('wizard', self.pa.hat)
-        self.assertEqual('wizard', self.pa['hat'])
-
-        self.pa['hat'] = 'tophat'
-        self.assertEqual('tophat', self.pa.hat)
-        self.assertEqual('tophat', self.pa['hat'])
-
-    def test_mapa_to_mapping_interface(self):
-        # If you need a Mapping interface use this API:
-        mpa = MappingPathAccessor.fromMappedAttrs(self.pa)
-        self.assertEqual('leather', mpa.get('armor'))
-        self.assertEqual('got', mpa.get('get'))
-        self.assertEqual('banana', mpa.get('fruit', 'banana'))
-
-
-class SequencePathAccessorTests (PathAccessorBaseTests):
-    TargetClass = SequencePathAccessor
-    TargetValue = ['a', 'b', 'c']
-
-    def test_getitem(self):
-        self.assertEqual('b', self.pa[1])
-
-    def test_getitem_keyerror(self):
-        self.assertRaisesRegexp(
-            KeyError,
-            r"^<[A-Za-z]+PathAccessor ROOT {.*}> has no member 42$",
-            self.pa.__getitem__,
-            42,
-        )
-
-    def test_setitem(self):
-        self.pa['pants'] = 'polyester'
-        self.assertEqual('polyester', self.pa['pants'])
-
-
-class CompoundStructureTests (PathAccessorBaseTests):
     def setUp(self):
         self.structure = {'a': [{"foo": [None, [], 1337]}]}
 

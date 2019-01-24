@@ -1,7 +1,8 @@
-from collections import Mapping, Sequence
+from collections import MutableMapping, MutableSequence
 
 
 class PathAccessorKeyError (KeyError):
+    """This path overrides KeyError.__str__ for more precise error messages."""
     def __str__(self):
         return self.args[0]
 
@@ -19,9 +20,14 @@ class PathAccessorBase (object):
     def __len__(self):
         return len(self._value)
 
+    def __delitem__(self, key):
+        del self._value[key]
+
+    def __setitem__(self, key, value):
+        self._value[key] = value
+
     def __getitem__(self, key):
-        t = type(self)
-        return self._get(key, t._GetItemExc, '{}[{!r}]')
+        return self._get(key, PathAccessorKeyError, '{}[{!r}]')
 
     # A private utility method for subclasses:
     def _get(self, key, exctype, pathfmt):
@@ -38,34 +44,41 @@ class PathAccessorBase (object):
         )
 
 
-class MappingPathAccessor (PathAccessorBase, Mapping):
+class MappingPathAccessor (PathAccessorBase, MutableMapping):
     @classmethod
     def fromMappedAttrs(cls, inst):
         assert isinstance(inst, MappedAttrsPathAccessor), inst
         return cls(inst._value, inst._path)
 
     def __init__(self, d, path):
-        assert isinstance(d, Mapping), (d, path)
+        assert isinstance(d, MutableMapping), (d, path)
         PathAccessorBase.__init__(self, d, path)
 
     def __iter__(self):
         return iter(self._value)
 
-    # Private:
-    _GetItemExc = PathAccessorKeyError
+    def update(self, other):
+        self._value.update(other)
 
 
 class MappedAttrsPathAccessor (PathAccessorBase):
     def __getattr__(self, key):
         return self._get(key, AttributeError, '{}.{}')
 
-    # Private:
-    _GetItemExc = PathAccessorKeyError
+    def __setattr__(self, key, value):
+        """
+        Caution/Gotcha: if key begins w/ '_' this sets private internal
+        member state. Otherwise it sets value state.
+        """
+        if key.startswith('_'):
+            PathAccessorBase.__setattr__(self, key, value)
+        else:
+            self[key] = value
 
 
-class SequencePathAccessor (PathAccessorBase, Sequence):
+class SequencePathAccessor (PathAccessorBase, MutableSequence):
     def __init__(self, s, path, mappingaccessor=MappingPathAccessor):
-        assert isinstance(s, Sequence), (s, path)
+        assert isinstance(s, MutableSequence), (s, path)
         PathAccessorBase.__init__(self, s, path)
         self._mappingaccessor = mappingaccessor
 
@@ -80,17 +93,17 @@ class SequencePathAccessor (PathAccessorBase, Sequence):
                 ),
             )
 
-    # Private:
-    _GetItemExc = PathAccessorKeyError
+    def insert(self, key, value):
+        self._value.insert(key, value)
 
 
 def wrap(thing, path, mappingaccessor=MappingPathAccessor):
     if isinstance(thing, basestring):
         # This case avoids the Sequence case below:
         return thing
-    elif isinstance(thing, Mapping):
+    elif isinstance(thing, MutableMapping):
         return mappingaccessor(thing, path)
-    elif isinstance(thing, Sequence):
+    elif isinstance(thing, MutableSequence):
         return SequencePathAccessor(thing, path, mappingaccessor)
     else:
         return thing
