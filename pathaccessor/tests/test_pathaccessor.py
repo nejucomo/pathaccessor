@@ -59,7 +59,7 @@ class MappingPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
     TargetClass = MappingPathAccessor
 
     def test_keys(self):
-        self.assertEqual({'weapon', 'armor'}, set(self.pa.keys()))
+        self.assertEqual({'weapon', 'armor', 'get'}, set(self.pa.keys()))
 
 
 class MappedAttrsPathAccessorTests (MPABaseMixin, PathAccessorBaseTests):
